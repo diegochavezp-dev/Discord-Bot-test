@@ -79,4 +79,4 @@ async def medieva(ctx):
     await ctx.send(embed=embed, view=RedesSocialesView())
 
 # Tu token original intacto
-bot.run("MTUxNTg5NjgxNjkwOTAyNTQxMQ.G41WDy.2J0GQ-9kVa8TAFukljnhP5bvsA_a3PJGegCdtM")
+bot.run(os.environ.get("DISCORD_TOKEN"))
