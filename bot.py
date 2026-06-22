@@ -8,34 +8,33 @@ intents = discord.Intents.default()
 intents.message_content = True  
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Variables de control: 3 días * 3 envíos por día = 9 veces en total
-MAX_ENVIOS = 9
+# Variables de control: Envío cada 30 horas durante un mes = 24 veces en total
+MAX_ENVIOS = 24
 contador_envios = 0
 
-# 2. Reloj automático: Ejecuta esta función exactamente cada 8 horas de frente
-@tasks.loop(hours=8.0)
+# 2. Reloj automático: Configurado para ejecutarse exactamente cada 30 horas de frente
+@tasks.loop(hours=30.0)
 async def enviar_anuncio_programado():
     global contador_envios
     await bot.wait_until_ready()
     
-    # El código interno exacto que obtuviste del chat
+    # Tu emoji verificado del chat
     emoji_texto = "<:dechill:1271555851227889716>"
     
     for guild in bot.guilds:
-        # Busca automáticamente el canal llamado "mods" en cada servidor
-        canal_objetivo = discord.utils.get(guild.channels, name="mods")
+        # Busca el canal llamado "general" (solo lo enviará en el servidor que lo tenga)
+        canal_objetivo = discord.utils.get(guild.channels, name="general")
         
         if canal_objetivo and contador_envios < MAX_ENVIOS:
-            # Apunta de forma exacta a tu archivo local en la carpeta images
             ruta_imagen = os.path.join("images", "jj.webp")
             
             if os.path.exists(ruta_imagen):
                 file = discord.File(ruta_imagen, filename="avatar.webp")
                 
-                # Embed limpio usando tu emoji verificado al final
+                # Embed compacto con el color púrpura de su rol
                 embed = discord.Embed(
                     description=f"Recuerda que tenemos un **PayPal** activo para donaciones. Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n👉 [Donar aquí con PayPal](https://www.paypal.me/MrBanana450)",
-                    color=10181046,  # Color púrpura exacto del rol de MrBanana45
+                    color=10181046,
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.set_author(name="MedieBot", icon_url="attachment://avatar.webp")
@@ -53,15 +52,15 @@ async def enviar_anuncio_programado():
                 print(f"⚠️ No se encontró la imagen en: {ruta_imagen}")
             
             contador_envios += 1
-            print(f" Anuncio enviado automáticamente ({contador_envios}/{MAX_ENVIOS})")
+            print(f" Anuncio enviado automáticamente a #general ({contador_envios}/{MAX_ENVIOS})")
             
     if contador_envios >= MAX_ENVIOS:
-        print(" Bucle terminado (3 días cumplidos). Deteniendo tarea.")
+        print(" Bucle terminado (1 mes cumplido). Deteniendo tarea.")
         enviar_anuncio_programado.stop()
 
 @bot.event
 async def on_ready():
-    print(f"🤖 {bot.user.name} encendido. Arrancando reloj automático para #mods...")
+    print(f"🤖 {bot.user.name} encendido. Arrancando reloj automático para #general...")
     if not enviar_anuncio_programado.is_running():
         enviar_anuncio_programado.start()
 
