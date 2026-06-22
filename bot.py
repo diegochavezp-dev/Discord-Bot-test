@@ -34,10 +34,11 @@ async def enviar_anuncio_programado():
     await bot.wait_until_ready()
     
     for guild in bot.guilds:
-        canal_general = discord.utils.get(guild.channels, name="general")
+        # CORREGIDO: Ahora el bucle automático sí busca "seccion1"
+        canal_seccion = discord.utils.get(guild.channels, name="seccion1")
         
-        if canal_general and contador_envios < MAX_ENVIOS:
-            mencion_canal = canal_general.mention
+        if canal_seccion and contador_envios < MAX_ENVIOS:
+            mencion_canal = canal_seccion.mention
             
             embed = discord.Embed(
                 title="Bienvenido a Medieva",
@@ -48,7 +49,7 @@ async def enviar_anuncio_programado():
             embed.set_thumbnail(url="https://i.ebayimg.com/images/g/BOIAAOSw-0xYiZYC/s-l1200.jpg")
             embed.set_image(url="https://www.pokemon.com/static-assets/content-assets/cms2/img/video-games/_tiles/strategy/go/mega-beedrill/pokemon-go-169.png")
             
-            await canal_general.send(embed=embed, view=RedesSocialesView())
+            await canal_seccion.send(embed=embed, view=RedesSocialesView())
             
             contador_envios += 1
             print(f" Anuncio enviado automáticamente ({contador_envios}/{MAX_ENVIOS})")
@@ -60,15 +61,15 @@ async def enviar_anuncio_programado():
 @bot.event
 async def on_ready():
     print(f"🤖 Bot encendido y conectado con éxito como {bot.user}!")
-    # Arranca el bucle de 8 horas automáticamente al iniciar el bot
     if not enviar_anuncio_programado.is_running():
         enviar_anuncio_programado.start()
 
-# Mantengo tu comando por si quieres probarlo manualmente escribiendo !medieva
+# Comando manual por si quieres probarlo escribiendo !medieva
 @bot.command(name="medieva")
 async def medieva(ctx):
     canal_seccion = discord.utils.get(ctx.guild.channels, name="seccion1")
     mencion_canal = canal_seccion.mention if canal_seccion else "#seccion1"
+    
     embed = discord.Embed(
         title="Bienvenido a Medieva",
         description=f"**Banana**\n\ndame la chamba en {mencion_canal}",
@@ -77,7 +78,10 @@ async def medieva(ctx):
     )
     embed.set_thumbnail(url="https://i.ebayimg.com/images/g/BOIAAOSw-0xYiZYC/s-l1200.jpg")
     embed.set_image(url="https://www.pokemon.com/static-assets/content-assets/cms2/img/video-games/_tiles/strategy/go/mega-beedrill/pokemon-go-169.png")
-    await ctx.send(embed=embed, view=RedesSocialesView())
+    
+    # Asegura que el comando manual también mande el mensaje a #seccion1
+    destino = canal_seccion if canal_seccion else ctx
+    await destino.send(embed=embed, view=RedesSocialesView())
 
 # Tu token original intacto
 bot.run(os.environ.get("DISCORD_TOKEN"))
