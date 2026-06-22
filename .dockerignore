@@ -1,0 +1,11 @@
+```text
+.git
+.gitignore
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+venv
+env
