@@ -67,8 +67,8 @@ async def on_ready():
 # Mantengo tu comando por si quieres probarlo manualmente escribiendo !medieva
 @bot.command(name="medieva")
 async def medieva(ctx):
-    canal_general = discord.utils.get(ctx.guild.channels, name="general")
-    mencion_canal = canal_general.mention if canal_general else "#general"
+    canal_seccion = discord.utils.get(ctx.guild.channels, name="seccion1")
+    mencion_canal = canal_seccion.mention if canal_seccion else "#seccion1"
     embed = discord.Embed(
         title="Bienvenido a Medieva",
         description=f"**Banana**\n\ndame la chamba en {mencion_canal}",
