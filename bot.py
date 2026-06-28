@@ -15,7 +15,7 @@ MAX_ENVIOS = 24
 contador_envios = 0
 
 # 👇 CONFIGURACIÓN: Reemplaza el 0 de abajo con el ID del mensaje tras usar !crearroles por primera vez
-ID_MENSAJE_ROLES = 0  
+ID_MENSAJE_ROLES = 1520818689102970985  
 
 ID_ROL_VIDEOS = 1520815361979846787
 ID_ROL_STREAMS = 1520815690003775598
