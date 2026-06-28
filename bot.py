@@ -1,45 +1,34 @@
 import os
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from datetime import datetime, timezone
 
-# 1. Configuración de permisos lógicos del Bot
+# 1. Configuracion de permisos logicos del Bot
 intents = discord.Intents.default()
 intents.message_content = True  
 intents.reactions = True      
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Variables de control: Envío cada 30 horas durante un mes = 24 veces en total (APAGADO POR AHORA)
+# Variables de control: Paypal apagado temporalmente
 MAX_ENVIOS = 24
 contador_envios = 0
 
-# Configuración estática de tus IDs reales
+# Configuracion estatica de tus IDs reales
 ID_MENSAJE_ROLES = 1520818689102970985  
 
-# Mapeo usando los IDs numéricos exactos de tus emojis personalizados
+# Mapeo usando los IDs numericos exactos de tus emojis personalizados
 MAPA_ROLES = {
     1514947374647349268: 1520815361979846787,  # KINGS -> Videos
     1520307113430089898: 1520815690003775598,  # LLANTA -> Streams
     1271556869906890837: 1520815766667264120   # pepo -> Torneos
 }
 
-# ====================================================================
-# RELOJ AUTOMÁTICO DE PAYPAL (COMENTADO / APAGADO TEMPORALMENTE)
-# ====================================================================
-# @tasks.loop(hours=30.0)
-# async def enviar_anuncio_programado():
-#     global contador_envios
-#     await bot.wait_until_ready()
-#     ... (Guardado interno intacto en la papelera para después)
-# ====================================================================
-
 # ==========================================
 # COMANDO MANUAL PARA LOS ROLES
 # ==========================================
 @bot.command(name="crearroles")
 async def crear_roles(ctx):
-    """Manda el embed estructurado de roles usando tus emojis custom"""
     ruta_imagen = os.path.join("images", "jj.webp")
     
     descripcion = (
@@ -58,43 +47,51 @@ async def crear_roles(ctx):
         embed_error.set_author(name="MedieBot")
         mensaje = await ctx.send(embed=embed_error)
     
-    # Coloca tus emojis personalizados como opciones de reacción abajo
     await mensaje.add_reaction("<:KINGS:1514947374647349268>")
     await mensaje.add_reaction("<:LLANTA:1520307113430089898>")
     await mensaje.add_reaction("<:pepo:1271556869906890837>")
 
 # ==========================================
-# ASIGNACIÓN PASIVA POR ID CON DEBUG LOGS
+# ASIGNACION PASIVA POR ID CON DEBUG SEGURO
 # ==========================================
 @bot.event
 async def on_raw_reaction_add(payload):
-    # Esto imprimirá CUALQUIER reacción en tu consola de Zeabur
-    print(f"🔍 [DEBUG] Alguien reaccionó. Mensaje ID: {payload.message_id} | Emoji ID: {payload.emoji.id}")
+    # Debug limpio sin caracteres extraños para no congelar la consola
+    print(f"[DEBUG] Reaccion detectada. MSG ID: {payload.message_id} | Emoji ID: {payload.emoji.id}")
     
     if payload.message_id != ID_MENSAJE_ROLES:
-        print("⚠️ [DEBUG] Reacción ignorada: No pertenece al mensaje de ID_MENSAJE_ROLES.")
         return
         
+    # Forzamos la busqueda en la API si no esta cargado en la cache de Zeabur
     guild = bot.get_guild(payload.guild_id)
-    if not guild or payload.user_id == bot.user.id:
+    if not guild:
+        try:
+            guild = await bot.fetch_guild(payload.guild_id)
+        except Exception:
+            return
+            
+    if payload.user_id == bot.user.id:
         return
         
     rol_id = MAPA_ROLES.get(payload.emoji.id)
-    print(f"🔍 [DEBUG] Buscando Rol ID en el mapa: {rol_id}")
-    
     if rol_id:
         rol = guild.get_role(rol_id)
+        
+        # Estrategia de respaldo: Si el miembro devuelve None, lo descargamos directo de Discord
         miembro = guild.get_member(payload.user_id)
-        
-        print(f"🔍 [DEBUG] ¿Se encontró el rol en Discord?: {rol is not None}")
-        print(f"🔍 [DEBUG] ¿Se encontró al miembro en caché?: {miembro is not None}")
-        
+        if not miembro:
+            try:
+                miembro = await guild.fetch_member(payload.user_id)
+            except Exception as e:
+                print(f"[DEBUG] Error al buscar miembro en Discord: {e}")
+                return
+                
         if rol and miembro:
             try:
                 await miembro.add_role(rol)
-                print(f"✅ Rol asignado exitosamente: {rol.name} a {miembro.name}")
+                print(f"[OK] Rol asignado correctamente")
             except Exception as e:
-                print(f"❌ ERROR CRÍTICO AL ASIGNAR ROL: {e}")
+                print(f"[ERR] No se pudo asignar por permisos: {e}")
 
 @bot.event
 async def on_raw_reaction_remove(payload):
@@ -103,23 +100,30 @@ async def on_raw_reaction_remove(payload):
         
     guild = bot.get_guild(payload.guild_id)
     if not guild:
-        return
+        try:
+            guild = await bot.fetch_guild(payload.guild_id)
+        except Exception:
+            return
         
     rol_id = MAPA_ROLES.get(payload.emoji.id)
     if rol_id:
         rol = guild.get_role(rol_id)
         miembro = guild.get_member(payload.user_id)
+        if not miembro:
+            try:
+                miembro = await guild.fetch_member(payload.user_id)
+            except Exception:
+                return
+                
         if rol and miembro:
             try:
                 await miembro.remove_role(rol)
-                print(f"❌ Rol removido: {rol.name} a {miembro.name}")
+                print(f"[OK] Rol removido correctamente")
             except Exception as e:
-                print(f"❌ ERROR AL REMOVER ROL: {e}")
+                print(f"[ERR] No se pudo remover: {e}")
 
 @bot.event
 async def on_ready():
-    # El reloj de general ya no se arranca aquí, inicia limpio
-    print(f"🤖 {bot.user.name} encendido (Modo de prueba de Roles - #general en pausa).")
+    print("Bot encendido correctamente y escuchando eventos pasivos.")
 
-# Tu token original intacto
 bot.run(os.environ.get("DISCORD_TOKEN"))
