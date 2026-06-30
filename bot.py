@@ -15,26 +15,34 @@ MAX_ENVIOS = 24
 contador_envios = 0
 
 # ==========================================
-# COMANDO: WIKIDEX (Solo tarjeta amarilla)
+# COMANDO: WIKIDEX (Con tarjeta y borde amarillo)
 # ==========================================
 @bot.command(name="wikidex")
 async def wikidex(ctx):
-    """Envia el texto formateado ocultando la previsualizacion de la web principal"""
-    texto = (
-        # Los simbolos < y > evitan que se genere la imagen de los Pichu abajo
+    """Envia la informacion dentro de un embed con borde amarillo"""
+    
+    descripcion = (
         "[WikiDex](<https://www.wikidex.net/wiki/WikiDex>), la enciclopedia Pokémon en español, "
         "se construye con aportaciones de fans como tú. Puedes ayudar haciendo correcciones de "
         "ortografía y otros fallos, ampliando información de juegos y productos oficiales, etc.\n\n"
         "🔸 Contacta con otros editores y recibe ayuda sobre cómo editar en nuestro Discord: "
         "https://discord.gg/nbqBprvpT 🔸"
     )
-    await ctx.send(texto)
+    
+    # Creamos el embed. El color 16433152 es el amarillo WikiDex en decimal
+    embed = discord.Embed(
+        description=descripcion, 
+        color=16433152
+    )
+    
+    # Enviamos el embed al canal (ocultando cualquier otra previsualizacion extra)
+    await ctx.send(embed=embed)
 
 # ==========================================
 # EVENTO DE ARRANQUE EN SILENCIO
 # ==========================================
 @bot.event
 async def on_ready():
-    print("Bot encendido correctamente. Todo lo relacionado a roles ha sido eliminado.")
+    print("Bot encendido correctamente. Modo tarjeta amarilla activado.")
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
