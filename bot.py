@@ -40,17 +40,17 @@ async def wikidex(ctx):
 # ==========================================
 @bot.command(name="aniversario")
 async def aniversario(ctx):
-    """Envia el anuncio de aniversario con la estructura exacta de la captura"""
+    """Envia el anuncio de aniversario con el formato de enlace corregido y borde rosado"""
     descripcion = (
         "¡**Pueblo Paleta** celebra su 3.er aniversario en julio! Eventos, sorpresas y "
         "buen ambiente te esperan. ¡Únete al servidor y celebra con nosotros! "
         "<:quagwin:1271553155108442125>\n\n"
-        "https://discord.gg/vbpSZEevtv" # El link crudo directo, tal como en tu captura
+        "Discord: https://discord.gg/vbpSZEevtv"
     )
     
     embed = discord.Embed(
         description=descripcion,
-        color=3447003 # Azul estándar de Discord
+        color=16515241 # Rosado vibrante de Pueblo Paleta
     )
     
     await ctx.send(embed=embed)
@@ -60,6 +60,6 @@ async def aniversario(ctx):
 # ==========================================
 @bot.event
 async def on_ready():
-    print("Bot encendido. Comandos configurados con el link crudo interno.")
+    print("Bot encendido. Formato de texto para el enlace de aniversario actualizado.")
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
