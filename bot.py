@@ -35,15 +35,16 @@ async def wikidex(ctx):
     await ctx.send(content="https://discord.gg/nbqBprvpT", embed=embed)
 
 # ==========================================
-# COMANDO 2: ANIVERSARIO PUEBLO PALETA
+# COMANDO 2: ANIVERSARIO PUEBLO PALETA (Corregido)
 # ==========================================
 @bot.command(name="aniversario")
 async def aniversario(ctx):
-    """Envia el anuncio de aniversario con el emoji de quagwin"""
+    """Envia el anuncio de aniversario idéntico al estilo de WikiDex"""
     descripcion = (
         "¡**Pueblo Paleta** celebra su 3.er aniversario en julio! Eventos, sorpresas y "
         "buen ambiente te esperan. ¡Únete al servidor y celebra con nosotros! "
-        "<:quagwin:1271553155108442125>"
+        "<:quagwin:1271553155108442125>\n\n"
+        "[¡Únete a Pueblo Paleta!](<https://discord.gg/vbpSZEevtv>)"
     )
     
     embed = discord.Embed(
@@ -51,6 +52,7 @@ async def aniversario(ctx):
         color=3447003 # Azul estándar de Discord
     )
     
+    # Mandamos el enlace en content para que genere la tarjeta interactiva abajo del embed
     await ctx.send(content="https://discord.gg/vbpSZEevtv", embed=embed)
 
 # ==========================================
@@ -58,6 +60,6 @@ async def aniversario(ctx):
 # ==========================================
 @bot.event
 async def on_ready():
-    print("Bot encendido. Comandos !wikidex y !aniversario listos.")
+    print("Bot encendido. Comandos !wikidex y !aniversario configurados con el mismo estilo.")
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
