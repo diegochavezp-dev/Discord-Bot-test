@@ -15,13 +15,14 @@ MAX_ENVIOS = 24
 contador_envios = 0
 
 # ==========================================
-# COMANDO: WIKIDEX (Invitacion e info)
+# COMANDO: WIKIDEX (Solo tarjeta amarilla)
 # ==========================================
 @bot.command(name="wikidex")
 async def wikidex(ctx):
-    """Envia el texto formateado para que Discord genere la tarjeta de invitacion"""
+    """Envia el texto formateado ocultando la previsualizacion de la web principal"""
     texto = (
-        "[WikiDex](https://www.wikidex.net/wiki/WikiDex), la enciclopedia Pokémon en español, "
+        # Los simbolos < y > evitan que se genere la imagen de los Pichu abajo
+        "[WikiDex](<https://www.wikidex.net/wiki/WikiDex>), la enciclopedia Pokémon en español, "
         "se construye con aportaciones de fans como tú. Puedes ayudar haciendo correcciones de "
         "ortografía y otros fallos, ampliando información de juegos y productos oficiales, etc.\n\n"
         "🔸 Contacta con otros editores y recibe ayuda sobre cómo editar en nuestro Discord: "
