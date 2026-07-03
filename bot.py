@@ -10,11 +10,11 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Variables de control para la automatización
+# Variables de control para la automatización (Pausadas temporalmente)
 MAX_REPETICIONES = 8
 contador_wikidex = 0
 contador_aniversario = 0
-toca_wikidex = True  # Determina quién empieza. True = WikiDex, False = Aniversario
+toca_wikidex = True
 
 # ==========================================
 # TEXTOS Y EMBEDS CONFIGURADOS
@@ -38,47 +38,45 @@ def obtener_embed_aniversario():
     )
     return discord.Embed(description=descripcion, color=16515241)
 
+def obtener_embed_eventos():
+    descripcion = (
+        "¿Mucho vacío con los torneos? ¿quieres algo más allá de presionar botones contra el oponente? "
+        "¿Cansado de scouting, haxing y schedule? ¡[Eventos](<https://play.pokemonshowdown.com/eventos>) es lo que necesitas! "
+        "La sala que da eventos y torneos exclusivos por dinero, CAVY, recompensas como tarjetas de steam o la sencilla "
+        "gloria de vencer a un tryhard y alimentar tu ego... Podrás hacer tus propios mons en el SSB, vencer desafíos en "
+        "equipo en el CAMP, poner tu inteligencia a prueba en la Torre y tener acceso privilegiado a torneos para eventinos. "
+        "La comunidad te espera con los brazos abiertos, ¡[Eventos](<https://play.pokemonshowdown.com/eventos>) espera tu desafío!\n\n"
+        "¡Unete al Servidor NO oficial de Eventos, [Eventos Today](https://discord.gg/JTNPehs3c) donde podrás interactuar, "
+        "shitpostear y divertirte con nosotros!\n\n"
+        "Discord: https://discord.gg/JTNPehs3c"
+    )
+    return discord.Embed(description=descripcion, color=5641372) # Color morado/azul oscuro adaptado de la imagen
+
 
 # ==========================================
-# BUCLE AUTOMÁTICO (Cada 10 horas de forma alterna)
+# BUCLE AUTOMÁTICO (Desactivado temporalmente en on_ready)
 # ==========================================
 @tasks.loop(hours=10.0)
 async def publicidad_automatica():
     global contador_wikidex, contador_aniversario, toca_wikidex
     
-    # Buscamos el canal llamado "general" automáticamente en el servidor
     canal = discord.utils.get(bot.get_all_channels(), name="general")
-    
     if not canal:
-        print("Aviso: No encontré ningún canal llamado 'general' todavía.")
         return
 
-    # Verificamos si ya se cumplió la meta global para apagar el bucle por completo
     if contador_wikidex >= MAX_REPETICIONES and contador_aniversario >= MAX_REPETICIONES:
-        print("[Auto] Se ha completado la semana de publicidad (8 envíos de cada uno). Deteniendo tarea.")
         publicidad_automatica.stop()
         return
 
-    # CASO A: Toca enviar WikiDex
     if toca_wikidex:
         if contador_wikidex < MAX_REPETICIONES:
-            embed = obtener_embed_wikidex()
-            await canal.send(embed=embed)
+            await canal.send(embed=obtener_embed_wikidex())
             contador_wikidex += 1
-            print(f"[Auto] WikiDex enviado ({contador_wikidex}/{MAX_REPETICIONES})")
-        
-        # Cambiamos el turno para la siguiente ejecución (dentro de 10 horas)
         toca_wikidex = False
-
-    # CASO B: Toca enviar Aniversario
     else:
         if contador_aniversario < MAX_REPETICIONES:
-            embed = obtener_embed_aniversario()
-            await canal.send(embed=embed)
+            await canal.send(embed=obtener_embed_aniversario())
             contador_aniversario += 1
-            print(f"[Auto] Aniversario Pueblo Paleta enviado ({contador_aniversario}/{MAX_REPETICIONES})")
-        
-        # Cambiamos el turno para la siguiente ejecución (dentro de 10 horas)
         toca_wikidex = True
 
 
@@ -93,17 +91,21 @@ async def wikidex(ctx):
 async def aniversario(ctx):
     await ctx.send(embed=obtener_embed_aniversario())
 
+@bot.command(name="eventos")
+async def eventos(ctx):
+    """Envia la tarjeta de Eventos Today con los links en azul en el texto"""
+    await ctx.send(embed=obtener_embed_eventos())
+
 
 # ==========================================
 # EVENTO DE ARRANQUE E INICIO DEL BUCLE
 # ==========================================
 @bot.event
 async def on_ready():
-    print(f"Bot listo como {bot.user.name}.")
+    print(f"Bot listo como {bot.user.name}. Modo testeo de comando !eventos activo.")
     
-    # Iniciamos la tarea programada si no está corriendo
-    if not publicidad_automatica.is_running():
-        publicidad_automatica.start()
-        print("Bucle de publicidad alternada iniciado correctamente (Intervalo: 10 horas).")
+    # Comentado para pausar los envíos automáticos de 10 horas por ahora:
+    # if not publicidad_automatica.is_running():
+    #     publicidad_automatica.start()
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
