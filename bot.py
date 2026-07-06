@@ -46,14 +46,14 @@ def obtener_embed_eventos():
         "equipo en el CAMP, poner tu inteligencia a prueba en la Torre y tener acceso privilegiado a torneos para eventinos. "
         "La comunidad te espera con los brazos abiertos, ¡[Eventos](<https://play.pokemonshowdown.com/eventos>) espera tu desafío!**\n\n"
         "**¡Unete al Servidor NO oficial de Eventos, [Eventos Today](https://discord.gg/JTNPehs3c) donde podrás interactuar, "
-        "shitpostear y divertirte con nosotros!**\n\n"
+        "shitpostear and divertirte con nosotros!**\n\n"
         "Discord: https://discord.gg/JTNPehs3c"
     )
     return discord.Embed(description=descripcion, color=5641372)
 
 
 # ==========================================
-# RELEJ MAESTRO ANTI-CHOQUES ILIMITADO (Revisa cada 1 hora)
+# RELOJ MAESTRO ANTI-CHOQUES ILIMITADO (Cada 1 hora)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
@@ -64,36 +64,31 @@ async def reloj_maestro_publicidad():
         return
 
     enviado_en_esta_hora = False
+    es_arranque = (horas_bucle_10h == 0 and horas_bucle_7h == 0)
 
     # 1. COMPROBACIÓN GRUPO 10 HORAS (WikiDex / Aniversario)
-    # Se ejecuta al inicio (hora 0) y luego estrictamente cada 10 horas
-    if horas_bucle_10h >= 10 or (horas_bucle_10h == 0 and NOT toca_wikidex == False and horas_bucle_7h == 0):
-        # Usamos una condición inicial limpia para el arranque
-         es_arranque = (horas_bucle_10h == 0 and horas_bucle_7h == 0)
-        if horas_bucle_10h >= 10 or es_arranque:
-            if toca_wikidex:
-                await canal.send(embed=obtener_embed_wikidex())
-                horas_bucle_10h = 0
-                toca_wikidex = False
-                enviado_en_esta_hora = True
-                print("[Reloj Maestro] WikiDex enviado de forma ilimitada.")
-            else:
-                await canal.send(embed=obtener_embed_aniversario())
-                horas_bucle_10h = 0
-                toca_wikidex = True
-                enviado_en_esta_hora = True
-                print("[Reloj Maestro] Aniversario enviado de forma ilimitada.")
+    if horas_bucle_10h >= 10 or es_arranque:
+        if toca_wikidex:
+            await canal.send(embed=obtener_embed_wikidex())
+            horas_bucle_10h = 0
+            toca_wikidex = False
+            enviado_en_esta_hora = True
+            print("[Reloj Maestro] WikiDex enviado (Ilimitado).")
+        else:
+            await canal.send(embed=obtener_embed_aniversario())
+            horas_bucle_10h = 0
+            toca_wikidex = True
+            enviado_en_esta_hora = True
+            print("[Reloj Maestro] Aniversario enviado (Ilimitado).")
 
     # 2. COMPROBACIÓN GRUPO 7 HORAS (Eventos Today)
-    if horas_bucle_7h >= 7 or (horas_bucle_7h == 0 and horas_bucle_10h == 1): # Contempla el desfase inicial del arranque
-        if horas_bucle_7h >= 7 or (horas_bucle_7h == 0 and horas_bucle_10h == 1):
-            if enviado_en_esta_hora:
-                print("[Anti-Choque] Eventos iba a coincidir. Se pospone 1 hora de manera inteligente.")
-                # No reiniciamos el contador, reintentará en la próxima hora
-            else:
-                await canal.send(embed=obtener_embed_eventos())
-                horas_bucle_7h = 0
-                print("[Reloj Maestro] Eventos enviado de forma ilimitada.")
+    if horas_bucle_7h >= 7 or es_arranque:
+        if enviado_en_esta_hora:
+            print("[Anti-Choque] Eventos iba a coincidir. Se pospone 1 hora de manera inteligente.")
+        else:
+            await canal.send(embed=obtener_embed_eventos())
+            horas_bucle_7h = 0
+            print("[Reloj Maestro] Eventos enviado (Ilimitado).")
 
     # Sumamos una hora a los contadores de tiempo para el siguiente ciclo
     horas_bucle_10h += 1
