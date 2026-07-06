@@ -10,12 +10,6 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Variables de control de repeticiones (Máximo 8 de cada uno)
-MAX_REPETICIONES = 8
-contador_wikidex = 0
-contador_aniversario = 0
-contador_eventos = 0
-
 # Relojes internos en horas (Llevan la cuenta de cuántas horas han pasado)
 horas_bucle_10h = 0
 horas_bucle_7h = 0
@@ -59,54 +53,47 @@ def obtener_embed_eventos():
 
 
 # ==========================================
-# RELEJ MAESTRO ANTI-CHOQUES (Revisa cada 1 hora)
+# RELEJ MAESTRO ANTI-CHOQUES ILIMITADO (Revisa cada 1 hora)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global contador_wikidex, contador_aniversario, contador_eventos
     global horas_bucle_10h, horas_bucle_7h, toca_wikidex
     
     canal = discord.utils.get(bot.get_all_channels(), name="general")
     if not canal:
         return
 
-    # Si todo ya se mandó 8 veces, apagamos el reloj definitivo
-    if contador_wikidex >= MAX_REPETICIONES and contador_aniversario >= MAX_REPETICIONES and contador_eventos >= MAX_REPETICIONES:
-        print("[Reloj Maestro] Toda la publicidad completada. Apagando sistema.")
-        reloj_maestro_publicidad.stop()
-        return
-
     enviado_en_esta_hora = False
 
     # 1. COMPROBACIÓN GRUPO 10 HORAS (WikiDex / Aniversario)
-    if horas_bucle_10h >= 10 or (contador_wikidex == 0 and contador_aniversario == 0 and horas_bucle_10h == 0):
-        if toca_wikidex and contador_wikidex < MAX_REPETICIONES:
-            await canal.send(embed=obtener_embed_wikidex())
-            contador_wikidex += 1
-            horas_bucle_10h = 0
-            toca_wikidex = False
-            enviado_en_esta_hora = True
-            print(f"[Reloj Maestro] WikiDex enviado ({contador_wikidex}/{MAX_REPETICIONES})")
-        elif not toca_wikidex and contador_aniversario < MAX_REPETICIONES:
-            await canal.send(embed=obtener_embed_aniversario())
-            contador_aniversario += 1
-            horas_bucle_10h = 0
-            toca_wikidex = True
-            enviado_en_esta_hora = True
-            print(f"[Reloj Maestro] Aniversario enviado ({contador_aniversario}/{MAX_REPETICIONES})")
+    # Se ejecuta al inicio (hora 0) y luego estrictamente cada 10 horas
+    if horas_bucle_10h >= 10 or (horas_bucle_10h == 0 and NOT toca_wikidex == False and horas_bucle_7h == 0):
+        # Usamos una condición inicial limpia para el arranque
+         es_arranque = (horas_bucle_10h == 0 and horas_bucle_7h == 0)
+        if horas_bucle_10h >= 10 or es_arranque:
+            if toca_wikidex:
+                await canal.send(embed=obtener_embed_wikidex())
+                horas_bucle_10h = 0
+                toca_wikidex = False
+                enviado_en_esta_hora = True
+                print("[Reloj Maestro] WikiDex enviado de forma ilimitada.")
+            else:
+                await canal.send(embed=obtener_embed_aniversario())
+                horas_bucle_10h = 0
+                toca_wikidex = True
+                enviado_en_esta_hora = True
+                print("[Reloj Maestro] Aniversario enviado de forma ilimitada.")
 
     # 2. COMPROBACIÓN GRUPO 7 HORAS (Eventos Today)
-    # Si le toca salir a Eventos pero ya se envió un mensaje en esta hora, lo aplazamos 1 hora más para evitar el choque
-    if horas_bucle_7h >= 7 or (contador_eventos == 0 and horas_bucle_7h == 0):
-        if contador_eventos < MAX_REPETICIONES:
+    if horas_bucle_7h >= 7 or (horas_bucle_7h == 0 and horas_bucle_10h == 1): # Contempla el desfase inicial del arranque
+        if horas_bucle_7h >= 7 or (horas_bucle_7h == 0 and horas_bucle_10h == 1):
             if enviado_en_esta_hora:
-                print("[Anti-Choque] Eventos iba a coincidir. Se pospone 1 hora automáticamente.")
-                # No reiniciamos el contador de horas_bucle_7h, así volverá a intentarlo en la siguiente hora
+                print("[Anti-Choque] Eventos iba a coincidir. Se pospone 1 hora de manera inteligente.")
+                # No reiniciamos el contador, reintentará en la próxima hora
             else:
                 await canal.send(embed=obtener_embed_eventos())
-                contador_eventos += 1
                 horas_bucle_7h = 0
-                print(f"[Reloj Maestro] Eventos enviado ({contador_eventos}/{MAX_REPETICIONES})")
+                print("[Reloj Maestro] Eventos enviado de forma ilimitada.")
 
     # Sumamos una hora a los contadores de tiempo para el siguiente ciclo
     horas_bucle_10h += 1
@@ -138,6 +125,6 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro Inteligente (Anti-Choques) activado.")
+        print("Reloj Maestro Inteligente Ilimitado (Anti-Choques) activado.")
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
