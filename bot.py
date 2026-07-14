@@ -33,9 +33,10 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Relojes internos (Desactivados por ahora)
-horas_bucle_10h = 0
-horas_bucle_30h = 0
+# Relojes internos en horas para controlar los intervalos
+horas_bucle_paleta = 0
+horas_bucle_pokeinstinct = 4  # Desfase inicial de 4 horas para que alterne perfectamente con Paleta (Paleta en h0, PokeInstinct en h4, Paleta en h8, PokeInstinct en h12...)
+horas_bucle_paypal = 0
 
 
 # ==========================================
@@ -54,10 +55,11 @@ def obtener_embed_pueblo_paleta():
 
 def obtener_embed_paypal():
     emoji_texto = "<:dechill:1271555851227889716>"
+    # Enlace corregido al PayPal exacto del usuario
     descripcion = (
         "Recuerda que tenemos un PayPal activo para donaciones. "
         f"Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n"
-        "👉 [Donar aquí con PayPal](https://www.paypal.com)" # <-- Cambia por tu link real de PayPal
+        "👉 [Donar aquí con PayPal](https://www.paypal.me/MrBanana450)"
     )
     embed = discord.Embed(
         description=descripcion,
@@ -82,35 +84,54 @@ def obtener_embed_poke_instinct():
 
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (APAGADO)
+# 3. RELOJ MAESTRO AUTOMÁTICO (ACTIVADO)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_10h, horas_bucle_30h
+    global horas_bucle_paleta, horas_bucle_pokeinstinct, horas_bucle_paypal
     
     canal = discord.utils.get(bot.get_all_channels(), name="general")
     if not canal:
         return
 
-    enviado_en_esta_hora = False
-    es_arranque = (horas_bucle_10h == 0 and horas_bucle_30h == 0)
+    enviado_paypal_ahora = False
+    es_arranque = (horas_bucle_paleta == 0 and horas_bucle_pokeinstinct == 4 and horas_bucle_paypal == 0)
 
-    if horas_bucle_10h >= 10 or es_arranque:
-        await canal.send(embed=obtener_embed_pueblo_paleta())
-        horas_bucle_10h = 0
-        enviado_en_esta_hora = True
+    # 1. COMPROBACIÓN DE PAYPAL (Cada 30 horas o arranque)
+    if horas_bucle_paypal >= 30 or es_arranque:
+        embed_copia = obtener_embed_paypal()
+        embed_copia.set_author(name="MedieBot")
+        await canal.send(embed=embed_copia)
+        horas_bucle_paypal = 0
+        enviado_paypal_ahora = True
+        print("[Reloj Maestro] Anuncio de PayPal enviado automáticamente.")
 
-    if horas_bucle_30h >= 30 or es_arranque:
-        if enviado_en_esta_hora:
-            pass
+    # 2. COMPROBACIÓN DE PUEBLO PALETA (Cada 8 horas o arranque)
+    if horas_bucle_paleta >= 8 or (es_arranque and not enviado_paypal_ahora):
+        # Si choca con el envío de PayPal, se pospone 1 hora
+        if enviado_paypal_ahora:
+            print("[Anti-Choque] Pueblo Paleta coincidió con PayPal. Se pospone 1 hora.")
+            horas_bucle_paleta = 7  # Al sumarle 1 al final del loop, quedará en 8 y se evaluará en la siguiente hora
         else:
-            embed_copia = obtener_embed_paypal()
-            embed_copia.set_author(name="MedieBot")
-            await canal.send(embed=embed_copia)
-            horas_bucle_30h = 0
+            await canal.send(embed=obtener_embed_pueblo_paleta())
+            horas_bucle_paleta = 0
+            print("[Reloj Maestro] Anuncio de Pueblo Paleta enviado automáticamente.")
 
-    horas_bucle_10h += 1
-    horas_bucle_30h += 1
+    # 3. COMPROBACIÓN DE POKEINSTINCT (Cada 8 horas)
+    if horas_bucle_pokeinstinct >= 8:
+        # Si choca con el envío de PayPal, se pospone 1 hora
+        if enviado_paypal_ahora:
+            print("[Anti-Choque] PokeInstinct coincidió con PayPal. Se pospone 1 hora.")
+            horas_bucle_pokeinstinct = 7  # Al sumarle 1 al final del loop, quedará en 8 y se evaluará en la siguiente hora
+        else:
+            await canal.send(embed=obtener_embed_poke_instinct())
+            horas_bucle_pokeinstinct = 0
+            print("[Reloj Maestro] Anuncio de PokeInstinct enviado automáticamente.")
+
+    # Incrementar contadores horarios
+    horas_bucle_paleta += 1
+    horas_bucle_pokeinstinct += 1
+    horas_bucle_paypal += 1
 
 
 # ==========================================
@@ -140,10 +161,10 @@ async def pokeinstinct(commands_ctx):
 @bot.event
 async def on_ready():
     print(f"Bot unificado listo como {bot.user.name}.")
-    print("Autoenvíos apagados. El Reloj Maestro no se iniciará.")
-    # El reloj automático está comentado para que no se ejecute:
-    # if not reloj_maestro_publicidad.is_running():
-    #     reloj_maestro_publicidad.start()
+    
+    if not reloj_maestro_publicidad.is_running():
+        reloj_maestro_publicidad.start()
+        print("Reloj Maestro de Anuncios activado con intervalos inteligentes (8h / 30h).")
 
 # Encendemos la simulación web para Render
 keep_alive()
