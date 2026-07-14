@@ -33,17 +33,16 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Relojes internos para controlar el envío automático (en horas)
+# Relojes internos (Desactivados por ahora)
 horas_bucle_10h = 0
 horas_bucle_30h = 0
 
 
 # ==========================================
-# 2. DISEÑO DE LOS EMBEDS (Pueblo Paleta y PayPal)
+# 2. DISEÑO DE LOS EMBEDS
 # ==========================================
 def obtener_embed_pueblo_paleta():
     emoji_texto = "<:quagwin:1271553155108442125>"
-    # Se añade el salto de línea (\n\n) después de "afición?" para mejorar la visualización
     descripcion = (
         "¿Buscas un lugar donde hablar de Pokémon, participar en torneos y conocer gente con la misma afición?\n\n"
         "En **Pueblo Paleta** organizamos eventos, competiciones y actividades para mantener la comunidad siempre activa. "
@@ -55,21 +54,35 @@ def obtener_embed_pueblo_paleta():
 
 def obtener_embed_paypal():
     emoji_texto = "<:dechill:1271555851227889716>"
-    # Descripción en negrita para máxima legibilidad
-    descripcion_en_negrita = (
-        "**Recuerda que tenemos un PayPal activo para donaciones. "
-        f"Cualquier cantidad es bien apreciada y ayuda muchísimo.** {emoji_texto}"
+    descripcion = (
+        "Recuerda que tenemos un PayPal activo para donaciones. "
+        f"Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n"
+        "👉 [Donar aquí con PayPal](https://www.paypal.com)" # <-- Cambia por tu link real de PayPal
     )
     embed = discord.Embed(
-        description=descripcion_en_negrita,
+        description=descripcion,
         color=10181046,
         timestamp=datetime.now(timezone.utc)
     )
     return embed
 
+def obtener_embed_poke_instinct():
+    emoji_texto = "⚔️"
+    descripcion = (
+        "¿Solo entras al Showdown para jugar ladder? ¿Buscas algo más que una simple victoria?\n\n"
+        "En **PokeInstinct** encontrarás una comunidad donde el competitivo cobra vida. "
+        "Participa en torneos, aprende nuevas estrategias, reta a otros entrenadores, "
+        "forma equipos para competiciones y mejora junto a jugadores de todos los niveles.\n\n"
+        "Ya sea que quieras dar tus primeros pasos en el competitivo o convertirte en un rival de alto nivel, "
+        "aquí siempre habrá alguien dispuesto a ayudarte... o a intentar derrotarte.\n\n"
+        f"¡Únete a PokeInstinct y demuestra que tienes lo necesario para convertirte en un verdadero campeón! {emoji_texto}\n\n"
+        "Discord: https://discord.gg/gf34vySGrb"
+    )
+    return discord.Embed(description=descripcion, color=15087942)
+
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (ACTIVADO)
+# 3. RELOJ MAESTRO AUTOMÁTICO (APAGADO)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
@@ -82,23 +95,19 @@ async def reloj_maestro_publicidad():
     enviado_en_esta_hora = False
     es_arranque = (horas_bucle_10h == 0 and horas_bucle_30h == 0)
 
-    # Comprobación de Pueblo Paleta (Cada 10 horas)
     if horas_bucle_10h >= 10 or es_arranque:
         await canal.send(embed=obtener_embed_pueblo_paleta())
         horas_bucle_10h = 0
         enviado_en_esta_hora = True
-        print("[Reloj Maestro] Anuncio de Pueblo Paleta enviado automáticamente.")
 
-    # Comprobación de PayPal (Cada 30 horas)
     if horas_bucle_30h >= 30 or es_arranque:
         if enviado_en_esta_hora:
-            print("[Anti-Choque] PayPal iba a coincidir con Pueblo Paleta. Se pospone 1 hora.")
+            pass
         else:
             embed_copia = obtener_embed_paypal()
             embed_copia.set_author(name="MedieBot")
             await canal.send(embed=embed_copia)
             horas_bucle_30h = 0
-            print("[Reloj Maestro] Anuncio de PayPal enviado automáticamente.")
 
     horas_bucle_10h += 1
     horas_bucle_30h += 1
@@ -119,6 +128,11 @@ async def paypal(commands_ctx):
     embed.set_author(name="MedieBot")
     await commands_ctx.send(embed=embed)
 
+@bot.command(name="pokeinstinct")
+async def pokeinstinct(commands_ctx):
+    """Manda el embed de PokeInstinct manualmente"""
+    await commands_ctx.send(embed=obtener_embed_poke_instinct())
+
 
 # ==========================================
 # 5. ARRANQUE DEL BOT
@@ -126,13 +140,13 @@ async def paypal(commands_ctx):
 @bot.event
 async def on_ready():
     print(f"Bot unificado listo como {bot.user.name}.")
-    
-    if not reloj_maestro_publicidad.is_running():
-        reloj_maestro_publicidad.start()
-        print("Reloj Maestro de Anuncios activado en segundo plano de forma indefinida.")
+    print("Autoenvíos apagados. El Reloj Maestro no se iniciará.")
+    # El reloj automático está comentado para que no se ejecute:
+    # if not reloj_maestro_publicidad.is_running():
+    #     reloj_maestro_publicidad.start()
 
 # Encendemos la simulación web para Render
 keep_alive()
 
-# Ejecutamos con tu token secreto desde las variables de entorno
+# Ejecutamos con tu token secreto
 bot.run(os.environ.get("DISCORD_TOKEN"))
