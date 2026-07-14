@@ -33,10 +33,13 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Relojes internos en horas para controlar los intervalos
-horas_bucle_paleta = 0
-horas_bucle_pokeinstinct = 4  # Desfase inicial de 4 horas para que alterne perfectamente con Paleta (Paleta en h0, PokeInstinct en h4, Paleta en h8, PokeInstinct en h12...)
+# Relojes internos en horas
+horas_bucle_8h = 0
 horas_bucle_paypal = 0
+
+# Interruptor para alternar los anuncios de 8 horas
+# True = Toca PokeInstinct | False = Toca Pueblo Paleta
+toca_pokeinstinct = True
 
 
 # ==========================================
@@ -55,7 +58,6 @@ def obtener_embed_pueblo_paleta():
 
 def obtener_embed_paypal():
     emoji_texto = "<:dechill:1271555851227889716>"
-    # Enlace corregido al PayPal exacto del usuario
     descripcion = (
         "Recuerda que tenemos un PayPal activo para donaciones. "
         f"Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n"
@@ -88,14 +90,14 @@ def obtener_embed_poke_instinct():
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_paleta, horas_bucle_pokeinstinct, horas_bucle_paypal
+    global horas_bucle_8h, horas_bucle_paypal, toca_pokeinstinct
     
     canal = discord.utils.get(bot.get_all_channels(), name="general")
     if not canal:
         return
 
     enviado_paypal_ahora = False
-    es_arranque = (horas_bucle_paleta == 0 and horas_bucle_pokeinstinct == 4 and horas_bucle_paypal == 0)
+    es_arranque = (horas_bucle_8h == 0 and horas_bucle_paypal == 0)
 
     # 1. COMPROBACIÓN DE PAYPAL (Cada 30 horas o arranque)
     if horas_bucle_paypal >= 30 or es_arranque:
@@ -106,31 +108,26 @@ async def reloj_maestro_publicidad():
         enviado_paypal_ahora = True
         print("[Reloj Maestro] Anuncio de PayPal enviado automáticamente.")
 
-    # 2. COMPROBACIÓN DE PUEBLO PALETA (Cada 8 horas o arranque)
-    if horas_bucle_paleta >= 8 or (es_arranque and not enviado_paypal_ahora):
+    # 2. COMPROBACIÓN DEL ANUNCIO DE 8 HORAS (Alternando PokeInstinct y Pueblo Paleta)
+    if horas_bucle_8h >= 8 or (es_arranque and not enviado_paypal_ahora):
         # Si choca con el envío de PayPal, se pospone 1 hora
         if enviado_paypal_ahora:
-            print("[Anti-Choque] Pueblo Paleta coincidió con PayPal. Se pospone 1 hora.")
-            horas_bucle_paleta = 7  # Al sumarle 1 al final del loop, quedará en 8 y se evaluará en la siguiente hora
+            print("[Anti-Choque] El anuncio de 8 horas coincidió con PayPal. Se pospone 1 hora.")
+            horas_bucle_8h = 7  # Al sumarle 1 al final del loop quedará en 8, evaluándose de nuevo en la siguiente hora
         else:
-            await canal.send(embed=obtener_embed_pueblo_paleta())
-            horas_bucle_paleta = 0
-            print("[Reloj Maestro] Anuncio de Pueblo Paleta enviado automáticamente.")
-
-    # 3. COMPROBACIÓN DE POKEINSTINCT (Cada 8 horas)
-    if horas_bucle_pokeinstinct >= 8:
-        # Si choca con el envío de PayPal, se pospone 1 hora
-        if enviado_paypal_ahora:
-            print("[Anti-Choque] PokeInstinct coincidió con PayPal. Se pospone 1 hora.")
-            horas_bucle_pokeinstinct = 7  # Al sumarle 1 al final del loop, quedará en 8 y se evaluará en la siguiente hora
-        else:
-            await canal.send(embed=obtener_embed_poke_instinct())
-            horas_bucle_pokeinstinct = 0
-            print("[Reloj Maestro] Anuncio de PokeInstinct enviado automáticamente.")
+            if toca_pokeinstinct:
+                await canal.send(embed=obtener_embed_poke_instinct())
+                print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
+                toca_pokeinstinct = False  # El siguiente turno será para Pueblo Paleta
+            else:
+                await canal.send(embed=obtener_embed_pueblo_paleta())
+                print("[Reloj Maestro] Turno de Pueblo Paleta enviado automáticamente.")
+                toca_pokeinstinct = True  # El siguiente turno será para PokeInstinct
+                
+            horas_bucle_8h = 0
 
     # Incrementar contadores horarios
-    horas_bucle_paleta += 1
-    horas_bucle_pokeinstinct += 1
+    horas_bucle_8h += 1
     horas_bucle_paypal += 1
 
 
@@ -164,7 +161,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro de Anuncios activado con intervalos inteligentes (8h / 30h).")
+        print("Reloj Maestro de Anuncios activado. Turnos de 8h estrictos (Instinct/Paleta) y PayPal 30h.")
 
 # Encendemos la simulación web para Render
 keep_alive()
