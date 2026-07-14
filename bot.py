@@ -33,7 +33,7 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Relojes internos para el control de los anuncios
+# Relojes internos para controlar el envío automático (en horas)
 horas_bucle_10h = 0
 horas_bucle_30h = 0
 
@@ -43,8 +43,9 @@ horas_bucle_30h = 0
 # ==========================================
 def obtener_embed_pueblo_paleta():
     emoji_texto = "<:quagwin:1271553155108442125>"
+    # Se añade el salto de línea (\n\n) después de "afición?" para mejorar la visualización
     descripcion = (
-        "¿Buscas un lugar donde hablar de Pokémon, participar en torneos y conocer gente con la misma afición? "
+        "¿Buscas un lugar donde hablar de Pokémon, participar en torneos y conocer gente con la misma afición?\n\n"
         "En **Pueblo Paleta** organizamos eventos, competiciones y actividades para mantener la comunidad siempre activa. "
         "Tanto si vienes a competir como a pasar un buen rato, aquí encontrarás tu sitio.\n\n"
         f"¡Únete a Pueblo Paleta y forma parte de nuestra bonita comunidad! {emoji_texto}\n\n"
@@ -54,8 +55,13 @@ def obtener_embed_pueblo_paleta():
 
 def obtener_embed_paypal():
     emoji_texto = "<:dechill:1271555851227889716>"
+    # Descripción en negrita para máxima legibilidad
+    descripcion_en_negrita = (
+        "**Recuerda que tenemos un PayPal activo para donaciones. "
+        f"Cualquier cantidad es bien apreciada y ayuda muchísimo.** {emoji_texto}"
+    )
     embed = discord.Embed(
-        description=f"Recuerda que tenemos un **PayPal** activo para donaciones. Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n👉 [Donar aquí con PayPal](https://www.paypal.me/MrBanana450)",
+        description=descripcion_en_negrita,
         color=10181046,
         timestamp=datetime.now(timezone.utc)
     )
@@ -63,7 +69,7 @@ def obtener_embed_paypal():
 
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (¡PAUSADO PARA TESTEO!)
+# 3. RELOJ MAESTRO AUTOMÁTICO (ACTIVADO)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
@@ -76,63 +82,42 @@ async def reloj_maestro_publicidad():
     enviado_en_esta_hora = False
     es_arranque = (horas_bucle_10h == 0 and horas_bucle_30h == 0)
 
-    # [AUTOMATIZACIÓN DESACTIVADA TEMPORALMENTE]
-    # Cuando quieras activarla, descomentaremos las líneas de abajo:
-    """
     # Comprobación de Pueblo Paleta (Cada 10 horas)
     if horas_bucle_10h >= 10 or es_arranque:
         await canal.send(embed=obtener_embed_pueblo_paleta())
         horas_bucle_10h = 0
         enviado_en_esta_hora = True
-        print("[Reloj Maestro] Pueblo Paleta enviado automáticamente.")
+        print("[Reloj Maestro] Anuncio de Pueblo Paleta enviado automáticamente.")
 
     # Comprobación de PayPal (Cada 30 horas)
     if horas_bucle_30h >= 30 or es_arranque:
         if enviado_en_esta_hora:
-            print("[Anti-Choque] PayPal iba a coincidir. Se pospone 1 hora de manera inteligente.")
+            print("[Anti-Choque] PayPal iba a coincidir con Pueblo Paleta. Se pospone 1 hora.")
         else:
-            # Mandamos el embed de PayPal con su imagen local
-            ruta_imagen = os.path.join("images", "image_8dac82.png")
-            if os.path.exists(ruta_imagen):
-                file = discord.File(ruta_imagen, filename="avatar.png")
-                embed_copia = obtener_embed_paypal()
-                embed_copia.set_author(name="MedieBot", icon_url="attachment://avatar.png")
-                await canal.send(file=file, embed=embed_copia)
-            else:
-                embed_copia = obtener_embed_paypal()
-                embed_copia.set_author(name="MedieBot")
-                await canal.send(embed=embed_copia)
+            embed_copia = obtener_embed_paypal()
+            embed_copia.set_author(name="MedieBot")
+            await canal.send(embed=embed_copia)
             horas_bucle_30h = 0
-            print("[Reloj Maestro] PayPal enviado automáticamente.")
+            print("[Reloj Maestro] Anuncio de PayPal enviado automáticamente.")
 
     horas_bucle_10h += 1
     horas_bucle_30h += 1
-    """
-    pass
 
 
 # ==========================================
-# 4. COMANDOS MANUALES (Activos para pruebas)
+# 4. COMANDOS MANUALES
 # ==========================================
 @bot.command(name="pueblopaleta")
 async def pueblopaleta(commands_ctx):
-    """Manda el nuevo embed de Pueblo Paleta manualmente"""
+    """Manda el embed de Pueblo Paleta manualmente"""
     await commands_ctx.send(embed=obtener_embed_pueblo_paleta())
 
 @bot.command(name="paypal")
 async def paypal(commands_ctx):
-    """Comando unificado exacto para mandar la tarjeta de PayPal (Opción B)"""
+    """Manda el embed de PayPal limpio sin duplicar el avatar"""
     embed = obtener_embed_paypal()
-    ruta_imagen = os.path.join("images", "image_8dac82.png")
-    
-    if os.path.exists(ruta_imagen):
-        file = discord.File(ruta_imagen, filename="avatar.png")
-        embed.set_author(name="MedieBot", icon_url="attachment://avatar.png")
-        await commands_ctx.send(file=file, embed=embed)
-    else:
-        embed.set_author(name="MedieBot")
-        await commands_ctx.send(embed=embed)
-        print(f"⚠️ Alerta manual: No se encontró la imagen en: {ruta_imagen}")
+    embed.set_author(name="MedieBot")
+    await commands_ctx.send(embed=embed)
 
 
 # ==========================================
@@ -140,11 +125,14 @@ async def paypal(commands_ctx):
 # ==========================================
 @bot.event
 async def on_ready():
-    print(f"Bot de testeo listo como {bot.user.name}.")
-    print("La automatización del reloj maestro está en PAUSA. Prueba con !paypal o !pueblopaleta.")
+    print(f"Bot unificado listo como {bot.user.name}.")
+    
+    if not reloj_maestro_publicidad.is_running():
+        reloj_maestro_publicidad.start()
+        print("Reloj Maestro de Anuncios activado en segundo plano de forma indefinida.")
 
 # Encendemos la simulación web para Render
 keep_alive()
 
-# Ejecutamos con tu token secreto
+# Ejecutamos con tu token secreto desde las variables de entorno
 bot.run(os.environ.get("DISCORD_TOKEN"))
