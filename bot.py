@@ -45,7 +45,7 @@ toca_pokeinstinct = True
 
 
 # ==========================================
-# 2. DISEÑO DE LOS EMBEDS Y CONTENIDO
+# 2. DISEÑO DE LOS EMBEDS
 # ==========================================
 def obtener_embed_poke_instinct():
     emoji_texto = "⚔️"
@@ -62,6 +62,7 @@ def obtener_embed_poke_instinct():
     return discord.Embed(description=descripcion, color=15087942)
 
 def obtener_embed_torneo_mundial():
+    # Insertamos el link en el orden exacto: después de "aquí:" y antes de "¡Nos vemos..."
     descripcion = (
         "Este mes nos ponemos en modo **Mundial**. ⚽✨\n\n"
         "🇪🇸🇲🇽🇦🇷🇯🇵🇧🇷... **elige los colores de tu bandera**, crea un equipo "
@@ -71,18 +72,16 @@ def obtener_embed_torneo_mundial():
         "📅 **Domingo 26 de julio**\n"
         "🕗 **20:00 (hora española)**\n\n"
         "¿Representarás a tu nación hasta lo más alto del podio? 🌎🔥\n\n"
-        "📋 Toda la información e inscripciones aquí:"
+        "📋 Toda la información e inscripciones aquí:\n"
+        "https://battlefy.com/imperio-impar/pok%C3%A9mon-xiii-tournament-10/6a4c92d3738cf50021bbcf39/info\n\n"
+        "¡Nos vemos en el campo de batalla! ⚔️"
     )
     embed = discord.Embed(
         title="🌍🏆 ¡Llega la Pokémon XIII Tournament #10! 🏆🌍",
         description=descripcion,
-        color=4672324  # Color oscuro integrado al chat (RGB 47, 49, 54 aproximado)
+        color=4672324  # Color gris oscuro integrado
     )
-    embed.set_footer(text="¡Nos vemos en el campo de batalla! ⚔️")
     return embed
-
-# Link externo para forzar la vista previa/tarjeta de Battlefy en Discord
-link_torneo_battlefy = "https://battlefy.com/imperio-impar/pok%C3%A9mon-xiii-tournament-10/6a4c92d3738cf50021bbcf39/info"
 
 
 # ==========================================
@@ -92,7 +91,6 @@ link_torneo_battlefy = "https://battlefy.com/imperio-impar/pok%C3%A9mon-xiii-tou
 async def reloj_maestro_publicidad():
     global horas_bucle_8h, toca_pokeinstinct, anuncios_automaticos_activos
     
-    # Si el interruptor global está en False, no procesa el envío automático
     if not anuncios_automaticos_activos:
         return
 
@@ -107,16 +105,14 @@ async def reloj_maestro_publicidad():
         if toca_pokeinstinct:
             await canal.send(embed=obtener_embed_poke_instinct())
             print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
-            toca_pokeinstinct = False  # Siguiente turno será Torneo
+            toca_pokeinstinct = False  
         else:
             await canal.send(embed=obtener_embed_torneo_mundial())
-            await canal.send(link_torneo_battlefy)
-            print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente con su link.")
-            toca_pokeinstinct = True  # Siguiente turno será PokeInstinct
+            print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente.")
+            toca_pokeinstinct = True  
             
         horas_bucle_8h = 0
 
-    # Incrementar contador horario
     horas_bucle_8h += 1
 
 
@@ -130,9 +126,8 @@ async def test_instinct(commands_ctx):
 
 @bot.command(name="test_torneo")
 async def test_torneo(commands_ctx):
-    """Manda el embed del Torneo y el link externo para verificar el diseño visual exacto"""
+    """Manda el embed del Torneo con el link interno en el orden correcto"""
     await commands_ctx.send(embed=obtener_embed_torneo_mundial())
-    await commands_ctx.send(link_torneo_battlefy)
 
 @bot.command(name="toggle_ads")
 async def toggle_ads(commands_ctx, estado: bool):
@@ -152,10 +147,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro inicializado (Modo manual activo por defecto. Usa !toggle_ads true para automatizar).")
+        print("Reloj Maestro inicializado en modo manual.")
 
-# Encendemos la simulación web para Render
 keep_alive()
-
-# Ejecutamos con tu token secreto
 bot.run(os.environ.get("DISCORD_TOKEN"))
