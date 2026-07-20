@@ -34,14 +34,14 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Reloj interno en horas
-horas_bucle_8h = 0
+horas_bucle_6h = 0
 
-# Control global para activar/desactivar el bucle automático (Inicia desactivado para pruebas)
-anuncios_automaticos_activos = False 
+# Control global para activar/desactivar el bucle automático (ACTIVADO POR DEFECTO)
+anuncios_automaticos_activos = True 
 
 # Interruptor para alternar los dos anuncios restantes
-# True = Toca PokeInstinct | False = Toca Torneo Mundial
-toca_pokeinstinct = True
+# False = Inicia con Torneo Mundial | True = Toca PokeInstinct
+toca_pokeinstinct = False
 
 
 # ==========================================
@@ -62,7 +62,6 @@ def obtener_embed_poke_instinct():
     return discord.Embed(description=descripcion, color=15087942)
 
 def obtener_embed_torneo_mundial():
-    # Insertamos el link en el orden exacto: después de "aquí:" y antes de "¡Nos vemos..."
     descripcion = (
         "Este mes nos ponemos en modo **Mundial**. ⚽✨\n\n"
         "🇪🇸🇲🇽🇦🇷🇯🇵🇧🇷... **elige los colores de tu bandera**, crea un equipo "
@@ -79,17 +78,17 @@ def obtener_embed_torneo_mundial():
     embed = discord.Embed(
         title="🌍🏆 ¡Llega la Pokémon XIII Tournament #10! 🏆🌍",
         description=descripcion,
-        color=4672324  # Color gris oscuro integrado
+        color=4672324  
     )
     return embed
 
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO
+# 3. RELOJ MAESTRO AUTOMÁTICO (Cada 6 horas)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_8h, toca_pokeinstinct, anuncios_automaticos_activos
+    global horas_bucle_6h, toca_pokeinstinct, anuncios_automaticos_activos
     
     if not anuncios_automaticos_activos:
         return
@@ -98,22 +97,24 @@ async def reloj_maestro_publicidad():
     if not canal:
         return
 
-    es_arranque = (horas_bucle_8h == 0)
+    es_arranque = (horas_bucle_6h == 0)
 
-    # COMPROBACIÓN DEL ANUNCIO DE 8 HORAS
-    if horas_bucle_8h >= 8 or es_arranque:
-        if toca_pokeinstinct:
-            await canal.send(embed=obtener_embed_poke_instinct())
-            print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
-            toca_pokeinstinct = False  
-        else:
+    # COMPROBACIÓN DEL ANUNCIO CADA 6 HORAS
+    if horas_bucle_6h >= 6 or es_arranque:
+        if not toca_pokeinstinct:
+            # Primero manda el Torneo
             await canal.send(embed=obtener_embed_torneo_mundial())
             print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente.")
-            toca_pokeinstinct = True  
+            toca_pokeinstinct = True  # El siguiente será Instinct
+        else:
+            # Luego manda PokeInstinct
+            await canal.send(embed=obtener_embed_poke_instinct())
+            print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
+            toca_pokeinstinct = False  # El siguiente será Torneo
             
-        horas_bucle_8h = 0
+        horas_bucle_6h = 0
 
-    horas_bucle_8h += 1
+    horas_bucle_6h += 1
 
 
 # ==========================================
@@ -147,7 +148,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro inicializado en modo manual.")
+        print("Reloj Maestro inicializado (Bucle activo cada 6 horas. Iniciando con Torneo).")
 
 keep_alive()
 bot.run(os.environ.get("DISCORD_TOKEN"))
