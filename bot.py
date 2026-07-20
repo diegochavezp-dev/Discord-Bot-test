@@ -33,43 +33,20 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Relojes internos en horas
+# Reloj interno en horas
 horas_bucle_8h = 0
-horas_bucle_paypal = 0
 
-# Interruptor para alternar los anuncios de 8 horas
-# True = Toca PokeInstinct | False = Toca Pueblo Paleta
+# Control global para activar/desactivar el bucle automático (Inicia desactivado para pruebas)
+anuncios_automaticos_activos = False 
+
+# Interruptor para alternar los dos anuncios restantes
+# True = Toca PokeInstinct | False = Toca Torneo Mundial
 toca_pokeinstinct = True
 
 
 # ==========================================
-# 2. DISEÑO DE LOS EMBEDS
+# 2. DISEÑO DE LOS EMBEDS Y CONTENIDO
 # ==========================================
-def obtener_embed_pueblo_paleta():
-    emoji_texto = "<:quagwin:1271553155108442125>"
-    descripcion = (
-        "¿Buscas un lugar donde hablar de Pokémon, participar en torneos y conocer gente con la misma afición?\n\n"
-        "En **Pueblo Paleta** organizamos eventos, competiciones y actividades para mantener la comunidad siempre activa. "
-        "Tanto si vienes a competir como a pasar un buen rato, aquí encontrarás tu sitio.\n\n"
-        f"¡Únete a Pueblo Paleta y forma parte de nuestra bonita comunidad! {emoji_texto}\n\n"
-        "Discord: https://discord.gg/vbpSZEevtv"
-    )
-    return discord.Embed(description=descripcion, color=16515241)
-
-def obtener_embed_paypal():
-    emoji_texto = "<:dechill:1271555851227889716>"
-    descripcion = (
-        "Recuerda que tenemos un PayPal activo para donaciones. "
-        f"Cualquier cantidad es bien apreciada y ayuda muchísimo. {emoji_texto}\n\n"
-        "👉 [Donar aquí con PayPal](https://www.paypal.me/MrBanana450)"
-    )
-    embed = discord.Embed(
-        description=descripcion,
-        color=10181046,
-        timestamp=datetime.now(timezone.utc)
-    )
-    return embed
-
 def obtener_embed_poke_instinct():
     emoji_texto = "⚔️"
     descripcion = (
@@ -84,72 +61,86 @@ def obtener_embed_poke_instinct():
     )
     return discord.Embed(description=descripcion, color=15087942)
 
+def obtener_embed_torneo_mundial():
+    descripcion = (
+        "Este mes nos ponemos en modo **Mundial**. ⚽✨\n\n"
+        "🇪🇸🇲🇽🇦🇷🇯🇵🇧🇷... **elige los colores de tu bandera**, crea un equipo "
+        "inspirado en tu país y demuestra quién merece levantar la copa.\n\n"
+        "Hay casteos y premios, para motivar todo lo que se pueda y poder "
+        "revivir ESE momento siempre que quieras, forma parte de la historia del canal 🩷🔥\n\n"
+        "📅 **Domingo 26 de julio**\n"
+        "🕗 **20:00 (hora española)**\n\n"
+        "¿Representarás a tu nación hasta lo más alto del podio? 🌎🔥\n\n"
+        "📋 Toda la información e inscripciones aquí:"
+    )
+    embed = discord.Embed(
+        title="🌍🏆 ¡Llega la Pokémon XIII Tournament #10! 🏆🌍",
+        description=descripcion,
+        color=4672324  # Color oscuro integrado al chat (RGB 47, 49, 54 aproximado)
+    )
+    embed.set_footer(text="¡Nos vemos en el campo de batalla! ⚔️")
+    return embed
+
+# Link externo para forzar la vista previa/tarjeta de Battlefy en Discord
+link_torneo_battlefy = "https://battlefy.com/imperio-impar/pok%C3%A9mon-xiii-tournament-10/6a4c92d3738cf50021bbcf39/info"
+
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (ACTIVADO)
+# 3. RELOJ MAESTRO AUTOMÁTICO
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_8h, horas_bucle_paypal, toca_pokeinstinct
+    global horas_bucle_8h, toca_pokeinstinct, anuncios_automaticos_activos
     
+    # Si el interruptor global está en False, no procesa el envío automático
+    if not anuncios_automaticos_activos:
+        return
+
     canal = discord.utils.get(bot.get_all_channels(), name="general")
     if not canal:
         return
 
-    enviado_paypal_ahora = False
-    es_arranque = (horas_bucle_8h == 0 and horas_bucle_paypal == 0)
+    es_arranque = (horas_bucle_8h == 0)
 
-    # 1. COMPROBACIÓN DE PAYPAL (Cada 30 horas o arranque)
-    if horas_bucle_paypal >= 30 or es_arranque:
-        embed_copia = obtener_embed_paypal()
-        embed_copia.set_author(name="MedieBot")
-        await canal.send(embed=embed_copia)
-        horas_bucle_paypal = 0
-        enviado_paypal_ahora = True
-        print("[Reloj Maestro] Anuncio de PayPal enviado automáticamente.")
-
-    # 2. COMPROBACIÓN DEL ANUNCIO DE 8 HORAS (Alternando PokeInstinct y Pueblo Paleta)
-    if horas_bucle_8h >= 8 or (es_arranque and not enviado_paypal_ahora):
-        # Si choca con el envío de PayPal, se pospone 1 hora
-        if enviado_paypal_ahora:
-            print("[Anti-Choque] El anuncio de 8 horas coincidió con PayPal. Se pospone 1 hora.")
-            horas_bucle_8h = 7  # Al sumarle 1 al final del loop quedará en 8, evaluándose de nuevo en la siguiente hora
+    # COMPROBACIÓN DEL ANUNCIO DE 8 HORAS
+    if horas_bucle_8h >= 8 or es_arranque:
+        if toca_pokeinstinct:
+            await canal.send(embed=obtener_embed_poke_instinct())
+            print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
+            toca_pokeinstinct = False  # Siguiente turno será Torneo
         else:
-            if toca_pokeinstinct:
-                await canal.send(embed=obtener_embed_poke_instinct())
-                print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
-                toca_pokeinstinct = False  # El siguiente turno será para Pueblo Paleta
-            else:
-                await canal.send(embed=obtener_embed_pueblo_paleta())
-                print("[Reloj Maestro] Turno de Pueblo Paleta enviado automáticamente.")
-                toca_pokeinstinct = True  # El siguiente turno será para PokeInstinct
-                
-            horas_bucle_8h = 0
+            await canal.send(embed=obtener_embed_torneo_mundial())
+            await canal.send(link_torneo_battlefy)
+            print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente con su link.")
+            toca_pokeinstinct = True  # Siguiente turno será PokeInstinct
+            
+        horas_bucle_8h = 0
 
-    # Incrementar contadores horarios
+    # Incrementar contador horario
     horas_bucle_8h += 1
-    horas_bucle_paypal += 1
 
 
 # ==========================================
-# 4. COMANDOS MANUALES
+# 4. COMANDOS MANUALES PARA PRUEBAS
 # ==========================================
-@bot.command(name="pueblopaleta")
-async def pueblopaleta(commands_ctx):
-    """Manda el embed de Pueblo Paleta manualmente"""
-    await commands_ctx.send(embed=obtener_embed_pueblo_paleta())
-
-@bot.command(name="paypal")
-async def paypal(commands_ctx):
-    """Manda el embed de PayPal limpio sin duplicar el avatar"""
-    embed = obtener_embed_paypal()
-    embed.set_author(name="MedieBot")
-    await commands_ctx.send(embed=embed)
-
-@bot.command(name="pokeinstinct")
-async def pokeinstinct(commands_ctx):
-    """Manda el embed de PokeInstinct manualmente"""
+@bot.command(name="test_instinct")
+async def test_instinct(commands_ctx):
+    """Manda el embed de PokeInstinct manualmente para pruebas"""
     await commands_ctx.send(embed=obtener_embed_poke_instinct())
+
+@bot.command(name="test_torneo")
+async def test_torneo(commands_ctx):
+    """Manda el embed del Torneo y el link externo para verificar el diseño visual exacto"""
+    await commands_ctx.send(embed=obtener_embed_torneo_mundial())
+    await commands_ctx.send(link_torneo_battlefy)
+
+@bot.command(name="toggle_ads")
+async def toggle_ads(commands_ctx, estado: bool):
+    """Permite encender (True) o apagar (False) el envío automático desde Discord"""
+    global anuncios_automaticos_activos
+    anuncios_automaticos_activos = estado
+    status = "ACTIVADOS" if estado else "DESACTIVADOS"
+    await commands_ctx.send(f"📢 Los anuncios automáticos ahora están: **{status}**")
 
 
 # ==========================================
@@ -161,7 +152,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro de Anuncios activado. Turnos de 8h estrictos (Instinct/Paleta) y PayPal 30h.")
+        print("Reloj Maestro inicializado (Modo manual activo por defecto. Usa !toggle_ads true para automatizar).")
 
 # Encendemos la simulación web para Render
 keep_alive()
