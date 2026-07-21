@@ -33,14 +33,16 @@ intents.reactions = True
 intents.members = True        
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Reloj interno en horas
+# Relojes internos independientes en horas
 horas_bucle_6h = 0
+horas_bucle_wikidex = 0
 
-# Control global desactivado para pruebas manuales
-anuncios_automaticos_activos = False 
+# Control global activado por defecto
+anuncios_automaticos_activos = True 
 
-# Índice para la rotación automática (0 = Torneo, 1 = Instinct, 2 = WikiDex)
-indice_anuncio = 0
+# Interruptor para alternar los anuncios de 6 horas
+# False = Toca Torneo Mundial | True = Toca PokeInstinct
+toca_pokeinstinct = False
 
 
 # ==========================================
@@ -91,17 +93,17 @@ def obtener_embed_wikidex():
     )
     embed = discord.Embed(
         description=descripcion,
-        color=discord.Color.blue()  # Cambiado a azul
+        color=16763904  # Color amarillo
     )
     return embed
 
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (Desactivado por ahora)
+# 3. RELOJ MAESTRO AUTOMÁTICO
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_6h, indice_anuncio, anuncios_automaticos_activos
+    global horas_bucle_6h, horas_bucle_wikidex, toca_pokeinstinct, anuncios_automaticos_activos
     
     if not anuncios_automaticos_activos:
         return
@@ -110,26 +112,37 @@ async def reloj_maestro_publicidad():
     if not canal:
         return
 
-    es_arranque = (horas_bucle_6h == 0)
+    es_arranque = (horas_bucle_6h == 0 and horas_bucle_wikidex == 0)
+    enviado_6h_ahora = False
 
-    # COMPROBACIÓN CADA 6 HORAS
+    # 1. EVALUAR ANUNCIO CADA 6 HORAS (Torneo / Instinct)
     if horas_bucle_6h >= 6 or es_arranque:
-        if indice_anuncio == 0:
+        if not toca_pokeinstinct:
             await canal.send(embed=obtener_embed_torneo_mundial())
-            print("[Reloj Maestro] Turno de Torneo Mundial enviado.")
-            indice_anuncio = 1
-        elif indice_anuncio == 1:
-            await canal.send(embed=obtener_embed_poke_instinct())
-            print("[Reloj Maestro] Turno de PokeInstinct enviado.")
-            indice_anuncio = 2
+            print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente.")
+            toca_pokeinstinct = True
         else:
-            await canal.send(embed=obtener_embed_wikidex())
-            print("[Reloj Maestro] Turno de WikiDex enviado.")
-            indice_anuncio = 0
+            await canal.send(embed=obtener_embed_poke_instinct())
+            print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
+            toca_pokeinstinct = False
             
         horas_bucle_6h = 0
+        enviado_6h_ahora = True
 
+    # 2. EVALUAR WIKIDEX CADA 8 HORAS
+    if horas_bucle_wikidex >= 8 or es_arranque:
+        # Si choca con el anuncio de 6 horas en este mismo momento, se pospone 1 hora
+        if enviado_6h_ahora and not es_arranque:
+            print("[Anti-Choque] WikiDex coincidió con el anuncio de 6h. Se pospone 1 hora.")
+            horas_bucle_wikidex = 7  # Al sumar +1 al final, quedará en 8 y se intentará en la siguiente hora
+        else:
+            await canal.send(embed=obtener_embed_wikidex())
+            print("[Reloj Maestro] Turno de WikiDex enviado automáticamente.")
+            horas_bucle_wikidex = 0
+
+    # Incrementar contadores cada hora
     horas_bucle_6h += 1
+    horas_bucle_wikidex += 1
 
 
 # ==========================================
@@ -168,7 +181,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro inicializado (Modo manual activo por defecto).")
+        print("Reloj Maestro inicializado (Bucle activo. Anuncios rotativos cada 6h y WikiDex cada 8h con anti-choque).")
 
 keep_alive()
 bot.run(os.environ.get("DISCORD_TOKEN"))
