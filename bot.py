@@ -36,12 +36,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Reloj interno en horas
 horas_bucle_6h = 0
 
-# Control global para activar/desactivar el bucle automático (ACTIVADO POR DEFECTO)
-anuncios_automaticos_activos = True 
+# Control global desactivado para pruebas manuales
+anuncios_automaticos_activos = False 
 
-# Interruptor para alternar los dos anuncios restantes
-# False = Inicia con Torneo Mundial | True = Toca PokeInstinct
-toca_pokeinstinct = False
+# Índice para la rotación automática (0 = Torneo, 1 = Instinct, 2 = WikiDex)
+indice_anuncio = 0
 
 
 # ==========================================
@@ -82,13 +81,27 @@ def obtener_embed_torneo_mundial():
     )
     return embed
 
+def obtener_embed_wikidex():
+    descripcion = (
+        "[WikiDex](https://www.wikidex.net/wiki/WikiDex), la enciclopedia Pokémon en español, se construye con aportaciones de "
+        "fans como tú. Puedes ayudar haciendo correcciones de ortografía y otros fallos, "
+        "ampliando información de juegos y productos oficiales, etc.\n\n"
+        "🔸 Contacta con otros editores y recibe ayuda sobre cómo editar en nuestro Discord: 🔸\n"
+        "https://discord.gg/nbqBprvpT"
+    )
+    embed = discord.Embed(
+        description=descripcion,
+        color=discord.Color.blue()  # Cambiado a azul
+    )
+    return embed
+
 
 # ==========================================
-# 3. RELOJ MAESTRO AUTOMÁTICO (Cada 6 horas)
+# 3. RELOJ MAESTRO AUTOMÁTICO (Desactivado por ahora)
 # ==========================================
 @tasks.loop(hours=1.0)
 async def reloj_maestro_publicidad():
-    global horas_bucle_6h, toca_pokeinstinct, anuncios_automaticos_activos
+    global horas_bucle_6h, indice_anuncio, anuncios_automaticos_activos
     
     if not anuncios_automaticos_activos:
         return
@@ -99,18 +112,20 @@ async def reloj_maestro_publicidad():
 
     es_arranque = (horas_bucle_6h == 0)
 
-    # COMPROBACIÓN DEL ANUNCIO CADA 6 HORAS
+    # COMPROBACIÓN CADA 6 HORAS
     if horas_bucle_6h >= 6 or es_arranque:
-        if not toca_pokeinstinct:
-            # Primero manda el Torneo
+        if indice_anuncio == 0:
             await canal.send(embed=obtener_embed_torneo_mundial())
-            print("[Reloj Maestro] Turno de Torneo Mundial enviado automáticamente.")
-            toca_pokeinstinct = True  # El siguiente será Instinct
-        else:
-            # Luego manda PokeInstinct
+            print("[Reloj Maestro] Turno de Torneo Mundial enviado.")
+            indice_anuncio = 1
+        elif indice_anuncio == 1:
             await canal.send(embed=obtener_embed_poke_instinct())
-            print("[Reloj Maestro] Turno de PokeInstinct enviado automáticamente.")
-            toca_pokeinstinct = False  # El siguiente será Torneo
+            print("[Reloj Maestro] Turno de PokeInstinct enviado.")
+            indice_anuncio = 2
+        else:
+            await canal.send(embed=obtener_embed_wikidex())
+            print("[Reloj Maestro] Turno de WikiDex enviado.")
+            indice_anuncio = 0
             
         horas_bucle_6h = 0
 
@@ -122,13 +137,18 @@ async def reloj_maestro_publicidad():
 # ==========================================
 @bot.command(name="test_instinct")
 async def test_instinct(commands_ctx):
-    """Manda el embed de PokeInstinct manualmente para pruebas"""
+    """Manda el embed de PokeInstinct manualmente"""
     await commands_ctx.send(embed=obtener_embed_poke_instinct())
 
 @bot.command(name="test_torneo")
 async def test_torneo(commands_ctx):
-    """Manda el embed del Torneo con el link interno en el orden correcto"""
+    """Manda el embed del Torneo manualmente"""
     await commands_ctx.send(embed=obtener_embed_torneo_mundial())
+
+@bot.command(name="test_wikidex")
+async def test_wikidex(commands_ctx):
+    """Manda el embed de WikiDex manualmente"""
+    await commands_ctx.send(embed=obtener_embed_wikidex())
 
 @bot.command(name="toggle_ads")
 async def toggle_ads(commands_ctx, estado: bool):
@@ -148,7 +168,7 @@ async def on_ready():
     
     if not reloj_maestro_publicidad.is_running():
         reloj_maestro_publicidad.start()
-        print("Reloj Maestro inicializado (Bucle activo cada 6 horas. Iniciando con Torneo).")
+        print("Reloj Maestro inicializado (Modo manual activo por defecto).")
 
 keep_alive()
 bot.run(os.environ.get("DISCORD_TOKEN"))
